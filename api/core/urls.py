@@ -16,9 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from employees.views import EmployeeTokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('users.urls')),
     path('api/v1/', include('employees.urls')),
+    
+    
+    path('api/v1/token/refresh/', EmployeeTokenRefreshView.as_view(), name='token_refresh'),
 ]

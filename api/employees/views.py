@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 from .models import Employee, EmployeeType
 from .serializers import EmployeeLoginSerializer, EmployeeCreateSerializer
@@ -103,3 +104,31 @@ class EmployeeListView(APIView):
             for emp in employees
         ]
         return Response(data, status=status.HTTP_200_OK)
+    
+class EmployeeTokenRefreshView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        refresh_token_string = request.data.get("refresh")
+        
+        if not refresh_token_string:
+            return Response(
+                {"detail": "Refresh токен не передан."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            refresh = RefreshToken(refresh_token_string)
+            
+            data = {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
+            }
+            return Response(data, status=status.HTTP_200_OK)
+            
+        except TokenError as e:
+            return Response(
+                {"detail": "invalid refresh token."}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
