@@ -32,8 +32,8 @@ class EmployeeLoginView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            refresh = RefreshToken.for_user(employee)
-            
+            refresh = RefreshToken()
+            refresh['user_id'] = str(employee.id)
             refresh['employee_type'] = employee.employee_type
 
             return Response({
@@ -83,3 +83,23 @@ class AdminCreateEmployeeView(APIView):
             )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class EmployeeListView(APIView):
+    authentication_classes = [EmployeeJWTAuthentication]
+    permission_classes = [] 
+
+    def get(self, request):
+        employees = Employee.objects.all().order_by('-date_joined')
+        
+        data = [
+            {
+                "id": str(emp.id),
+                "email": emp.email,
+                "first_name": emp.first_name,
+                "last_name": emp.last_name,
+                "phone": emp.phone if emp.phone else "—",
+                "type": emp.employee_type,
+            }
+            for emp in employees
+        ]
+        return Response(data, status=status.HTTP_200_OK)

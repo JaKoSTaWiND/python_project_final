@@ -3,13 +3,13 @@ from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ...serializers import EmailCheckSerializer, VerifyOPTSerializer, RegistrationSerializer, LoginSerializer
+from users.serializers import EmailCheckSerializer, VerifyOPTSerializer, RegistrationSerializer, LoginSerializer
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ...services.auth import send_otp_email
+from users.services.auth import send_otp_email
 
 
 import random

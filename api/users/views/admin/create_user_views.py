@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 
-from ...serializers import CreateUserSerializer
+from users.serializers import CreateUserSerializer
 from django.contrib.auth import get_user_model
 
 from employees.authentication import EmployeeJWTAuthentication
