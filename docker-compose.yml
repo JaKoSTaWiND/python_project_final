@@ -1,0 +1,106 @@
+services:
+  marketplace_api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: marketplace_api
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./api:/app
+      - ./:/workspaces/marketplace
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      marketplace_db:
+        condition: service_healthy
+      marketplace_redis:
+        condition: service_started
+    networks:
+      - marketplace_simulation
+
+  marketplace_db:
+    image: postgres:17
+    container_name: marketplace_db
+    restart: always
+    # env_file: 
+    #   - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - marketplace_simulation
+
+  marketplace_redis:
+    image: redis:8.6.3-alpine
+    container_name: marketplace_redis
+    restart: always
+    networks:
+      - marketplace_simulation
+
+  marketplace_redisinsight:
+    image: redis/redisinsight:latest
+    container_name: marketplace_redisinsight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/db
+    restart: always
+    networks:
+      - marketplace_simulation
+
+  marketplace_rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: marketplace_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - marketplace_simulation
+
+
+  marketplace_admin_client:
+    image: node:24-alpine
+    container_name: marketplace_admin_client
+    working_dir: /app
+    volumes:
+      - ./admin:/app
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  redisinsight_data:
+
+networks:
+  marketplace_simulation:
+    name: marketplace_simulation
+    driver: bridge
+
+    
