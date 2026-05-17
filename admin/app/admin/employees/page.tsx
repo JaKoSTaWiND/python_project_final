@@ -2,9 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import * as Dialog from "@radix-ui/react-dialog"; // Базовый примитив shadcn диалога
-import { Plus, X } from "lucide-react"; // Иконки
+import * as Dialog from "@radix-ui/react-dialog";
+import { Plus, X } from "lucide-react"; 
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 interface Employee {
   id: string;
   email: string;
@@ -19,18 +31,20 @@ export default function EmployeesPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Стейты для модального окна и формы
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [formData, setFormData] = useState({
-  email: "",
-  password: "",
-  password_confirm: "", // Добавили поле
-  first_name: "",
-  last_name: "",
-  phone: "",
+    email: "",
+    password: "",
+    password_confirm: "", 
+    first_name: "",
+    last_name: "",
+    phone: "",
   });
+
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [employeeToDismiss, setEmployeeToDismiss] = useState<Employee | null>(null);
 
   const fetchEmployees = async () => {
     try {
@@ -60,54 +74,81 @@ export default function EmployeesPage() {
   };
 
   const handleCreateEmployee = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setFormError("");
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError("");
 
-  // Клиентская валидация совпадения паролей
-  if (formData.password !== formData.password_confirm) {
-    setFormError("Пароли не совпадают");
-    setIsSubmitting(false);
-    return;
-  }
-
-  try {
-    const response = await apiFetch("/admin/employees/create/", {
-      method: "POST",
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-        password_confirm: formData.password_confirm, // Передаем на бэкенд
-        first_name: formData.first_name || undefined,
-        last_name: formData.last_name || undefined,
-        phone: formData.phone || null,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      if (typeof result === "object") {
-        const firstKey = Object.keys(result)[0];
-        const errorMsg = Array.isArray(result[firstKey]) ? result[firstKey][0] : JSON.stringify(result[firstKey]);
-        throw new Error(`${firstKey}: ${errorMsg}`);
-      }
-      throw new Error("Не удалось создать сотрудника");
+    if (formData.password !== formData.password_confirm) {
+      setFormError("Пароли не совпадают");
+      setIsSubmitting(false);
+      return;
     }
 
-    await fetchEmployees();
-    setIsDialogOpen(false);
-    setFormData({ email: "", password: "", password_confirm: "", first_name: "", last_name: "", phone: "" });
-  } catch (err: any) {
-    setFormError(err.message);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    try {
+      const response = await apiFetch("/admin/employees/create/", {
+        method: "POST",
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          password_confirm: formData.password_confirm, 
+          first_name: formData.first_name || undefined,
+          last_name: formData.last_name || undefined,
+          phone: formData.phone || null,
+        }),
+      });
 
-  const handleDismiss = (id: string, email: string) => {
-    console.log(`Dismiss triggered for ID: ${id}, Email: ${email}`);
-    alert(`Действие Dismiss для ${email} пока не реализовано на бэкенде`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (typeof result === "object") {
+          const firstKey = Object.keys(result)[0];
+          const errorMsg = Array.isArray(result[firstKey]) ? result[firstKey][0] : JSON.stringify(result[firstKey]);
+          throw new Error(`${firstKey}: ${errorMsg}`);
+        }
+        throw new Error("Не удалось создать сотрудника");
+      }
+
+      await fetchEmployees();
+      setIsDialogOpen(false);
+      setFormData({ email: "", password: "", password_confirm: "", first_name: "", last_name: "", phone: "" });
+      
+      toast.success("Сотрудник успешно добавлен в штат");
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const triggerDismissConfirm = (emp: Employee) => {
+    setEmployeeToDismiss(emp);
+    setIsConfirmOpen(true);
+  };
+
+  const handleExecuteDismiss = async () => {
+    if (!employeeToDismiss) return;
+    const targetId = employeeToDismiss.id;
+    const targetEmail = employeeToDismiss.email;
+
+    try {
+      const response = await apiFetch(`/admin/employees/${targetId}/dismiss/`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.detail || "Не удалось уволить сотрудника");
+      }
+
+      setEmployees((prevEmployees) => prevEmployees.filter((emp) => emp.id !== targetId));
+      toast.success(`Сотрудник ${targetEmail} успешно уволен`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Ошибка: ${err.message}`);
+    } finally {
+      setIsConfirmOpen(false);
+      setEmployeeToDismiss(null);
+    }
   };
 
   if (isLoading) {
@@ -124,14 +165,14 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Хедер таблицы с кнопкой справа */}
+      <Toaster richColors position="top-center" />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
           <p className="text-sm text-muted-foreground mt-1">Organizational structure and personnel management</p>
         </div>
 
-        {/* Shadcn/Radix Dialog Компонент */}
         <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <Dialog.Trigger asChild>
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity cursor-pointer shadow-sm">
@@ -142,7 +183,7 @@ export default function EmployeesPage() {
           
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-50" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 bg-card text-card-foreground rounded-lg border border-border shadow-lg z-50 focus:outline-none animate-in fade-in-50 zoom-in-95 duration-200">
+            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 bg-card text-card-foreground rounded-lg border border-border shadow-lg z-50 focus:outline-none">
               <div className="flex items-center justify-between mb-4">
                 <Dialog.Title className="text-lg font-semibold tracking-tight">Add New Employee</Dialog.Title>
                 <Dialog.Close asChild>
@@ -171,7 +212,7 @@ export default function EmployeesPage() {
                       name="first_name"
                       value={formData.first_name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                       placeholder="John"
                     />
                   </div>
@@ -182,7 +223,7 @@ export default function EmployeesPage() {
                       name="last_name"
                       value={formData.last_name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                       placeholder="Doe"
                     />
                   </div>
@@ -196,12 +237,11 @@ export default function EmployeesPage() {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                     placeholder="john.doe@company.com"
                   />
                 </div>
 
-                {/* Сетка для Пароля и его Подтверждения */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">Password *</label>
@@ -211,7 +251,7 @@ export default function EmployeesPage() {
                       required
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                       placeholder="••••••••"
                     />
                   </div>
@@ -223,7 +263,7 @@ export default function EmployeesPage() {
                       required
                       value={formData.password_confirm}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                       placeholder="••••••••"
                     />
                   </div>
@@ -236,7 +276,7 @@ export default function EmployeesPage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none"
                     placeholder="+7 (707) 123-4567"
                   />
                 </div>
@@ -253,7 +293,7 @@ export default function EmployeesPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 disabled:opacity-50 cursor-pointer transition-opacity"
+                    className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? "Creating..." : "Save Employee"}
                   </button>
@@ -264,7 +304,6 @@ export default function EmployeesPage() {
         </Dialog.Root>
       </div>
 
-      {/* Сама таблица сотрудников */}
       <div className="rounded-md border border-border bg-card text-card-foreground overflow-hidden">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
@@ -298,7 +337,7 @@ export default function EmployeesPage() {
                   <td className="p-4 text-muted-foreground">{emp.phone || "—"}</td>
                   <td className="p-4 text-right">
                     <button
-                      onClick={() => handleDismiss(emp.id, emp.email)}
+                      onClick={() => triggerDismissConfirm(emp)}
                       className="px-3 py-1.5 text-xs font-medium bg-transparent text-destructive border border-destructive rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors cursor-pointer"
                     >
                       Dismiss
@@ -310,6 +349,27 @@ export default function EmployeesPage() {
           </tbody>
         </table>
       </div>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Увольнение сотрудника</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите уволить сотрудника <strong>{employeeToDismiss?.email}</strong>? 
+              Доступ к корпоративным сервисам и сессии будут аннулированы немедленно. Это действие необратимо.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleExecuteDismiss}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Уволить сотрудника
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

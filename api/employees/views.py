@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from django.shortcuts import get_object_or_404
 
 from .models import Employee, EmployeeType
 from .serializers import EmployeeLoginSerializer, EmployeeCreateSerializer
@@ -30,6 +31,12 @@ class EmployeeLoginView(APIView):
             if not employee.verify_password(password):
                 return Response(
                     {"detail": "Invalid email or password."}, 
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if not employee.is_active:
+                return Response(
+                    {"detail": "Your account has been deactivated."}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
@@ -90,7 +97,7 @@ class EmployeeListView(APIView):
     permission_classes = [] 
 
     def get(self, request):
-        employees = Employee.objects.all().order_by('-date_joined')
+        employees = Employee.objects.filter(is_active=True).order_by('-date_joined')
         
         data = [
             {
@@ -132,3 +139,27 @@ class EmployeeTokenRefreshView(APIView):
                 {"detail": "invalid refresh token."}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+class AdminDismissEmployeeView(APIView):
+    authentication_classes = [EmployeeJWTAuthentication]
+    permission_classes = [IsEmployeeSuperuser]
+
+    def post(self, request, employee_id):
+        employee = get_object_or_404(Employee, id=employee_id)
+        
+        if request.user.id == employee.id:
+            return Response(
+                {"detail": "You cannot dismiss your own account."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        employee.is_active = False
+        employee.save()
+
+        return Response(
+            {
+                "message": f"Employee {employee.email} has been dismissed.",
+                "id": str(employee.id)
+            },
+            status=status.HTTP_200_OK
+        )

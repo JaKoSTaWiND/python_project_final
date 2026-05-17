@@ -97,6 +97,21 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
+  marketplace_client:
+    image: node:24-alpine
+    container_name: marketplace_client
+    working_dir: /app
+    volumes:
+      - ./client:/app
+    ports:
+      - "3001:3001"
+    stdin_open: true
+    tty: true
+    command: npm run dev
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - PORT=3001
+
 volumes:
   postgres_data:
   redisinsight_data:

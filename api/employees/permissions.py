@@ -1,10 +1,20 @@
 from rest_framework.permissions import BasePermission
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Employee, EmployeeType
 
-class IsEmployeeSuperuser(BasePermission):
+class IsEmployee(BasePermission):
     def has_permission(self, request, view):
-        if not request.user:
+        if not request.user or not request.user.is_authenticated:
             return False
             
-        return isinstance(request.user, Employee) and request.user.employee_type == EmployeeType.SUPERUSER
+        if request.user.is_superuser:
+            return True
+            
+        return isinstance(request.user, Employee)
+
+
+class IsEmployeeSuperuser(IsEmployee):
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+            
+        return request.user.employee_type == EmployeeType.SUPERUSER

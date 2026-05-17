@@ -36,36 +36,34 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-// Кастомный fetch-клиент с интерцептором (перехватчиком) ошибок
-export async function apiFetch(endpoint: string, options: FetchOptions = {}): Promise<Response> {
-  const apiUrl = getApiUrl();
-  const url = endpoint.startsWith("http") ? endpoint : `${apiUrl}${endpoint}`;
-  
-  // Инициализируем заголовки
-  options.headers = options.headers || {};
-  
-  // Подставляем текущий токен доступа
-  let token = localStorage.getItem("access_token");
+export async function apiFetch(url: string, options: RequestInit = {}) {
+  const token = localStorage.getItem("accessToken"); // или как ты хранишь токены
+
+  // 1. Создаем базовые заголовки
+  const headers = new Headers(options.headers);
+
+  // 2. Добавляем токен авторизации, если он есть
   if (token) {
-    options.headers["Authorization"] = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
   }
-  options.headers["Content-Type"] = options.headers["Content-Type"] || "application/json";
 
-  // Делаем базовый запрос
-  let response = await fetch(url, options);
-
-  // Если бэкенд ответил 401 (Токен протух), пытаемся обновиться
-  if (response.status === 401) {
-    console.warn("Access токен устарел, пытаюсь обновить...");
-    
-    const newToken = await refreshAccessToken();
-    
-    if (newToken) {
-      // Если обновили успешно — переписываем заголовок авторизации и повторяем запрос еще один раз
-      options.headers["Authorization"] = `Bearer ${newToken}`;
-      response = await fetch(url, options);
+  // 3. УМНАЯ ПРОВЕРКА: Если body — это FormData, мы НЕ СТАВИМ Content-Type.
+  // Браузер выставит multipart/form-data и boundary автоматически.
+  if (!(options.body instanceof FormData)) {
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
     }
   }
 
-  return response;
+  // Если это не FormData, не забываем сериализовать объект в JSON строку
+  let finalBody = options.body;
+  if (options.body && !(options.body instanceof FormData) && typeof options.body === "object") {
+    finalBody = JSON.stringify(options.body);
+  }
+
+  return fetch(`http://localhost:8000/api/v1${url}`, { // твой базовый URL бэкенда
+    ...options,
+    headers,
+    body: finalBody,
+  });
 }

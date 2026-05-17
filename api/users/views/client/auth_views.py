@@ -41,13 +41,13 @@ class EmailCheckView(APIView):
 
                 cache.set(f"otp_{email}", otp_code, timeout=300)
                 
-                # try:
-                #     send_otp_email(to_email=email, code=otp_code)
-                # except Exception as e:
-                #     return Response(
-                #         {"error": "Failed to send email. Check server configuration."}, 
-                #         status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                #     )
+                try:
+                    send_otp_email(to_email=email, code=otp_code)
+                except Exception as e:
+                    return Response(
+                        {"error": "Failed to send email. Check server configuration."}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
 
                 return Response({"account_status": "new",
                                  "otp_status": "sended"}, 

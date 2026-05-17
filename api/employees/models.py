@@ -19,6 +19,7 @@ class Employee(models.Model):
     password = models.CharField(max_length=128)
     phone = models.CharField(max_length=20, blank=True, null=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'employees'
