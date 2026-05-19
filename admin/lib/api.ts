@@ -4,13 +4,12 @@ interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
-// Вспомогательная функция для обновления токена
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return null;
 
   try {
-    const response = await fetch(`${getApiUrl()}/token/refresh/`, { // Убедись, что этот URL совпадает с роутом SimpleJWT в Django
+    const response = await fetch(`${getApiUrl()}/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh: refreshToken }),
@@ -21,12 +20,10 @@ async function refreshAccessToken(): Promise<string | null> {
     }
 
     const data = await response.json();
-    // Сохраняем новый access токен (SimpleJWT обычно возвращает его в ключе 'access')
     localStorage.setItem("access_token", data.access);
     return data.access;
   } catch (error) {
-    console.error("Критическая ошибка обновления токена:", error);
-    // Если refresh-токен тоже протух — чистим хранилище и отправляем на логин
+    console.error("Critical token refresh error:", error);
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     if (typeof window !== "undefined") {
@@ -36,34 +33,41 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-export async function apiFetch(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem("accessToken"); // или как ты хранишь токены
+export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let token = localStorage.getItem("access_token");
 
-  // 1. Создаем базовые заголовки
   const headers = new Headers(options.headers);
 
-  // 2. Добавляем токен авторизации, если он есть
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // 3. УМНАЯ ПРОВЕРКА: Если body — это FormData, мы НЕ СТАВИМ Content-Type.
-  // Браузер выставит multipart/form-data и boundary автоматически.
   if (!(options.body instanceof FormData)) {
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
   }
 
-  // Если это не FormData, не забываем сериализовать объект в JSON строку
-  let finalBody = options.body;
-  if (options.body && !(options.body instanceof FormData) && typeof options.body === "object") {
-    finalBody = JSON.stringify(options.body);
-  }
-
-  return fetch(`http://localhost:8000/api/v1${url}`, { // твой базовый URL бэкенда
+  const baseUrl = getApiUrl();
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  
+  let response = await fetch(`${baseUrl}${cleanUrl}`, {
     ...options,
     headers,
-    body: finalBody,
   });
+
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
+    
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
+      
+      response = await fetch(`${baseUrl}${cleanUrl}`, {
+        ...options,
+        headers,
+      });
+    }
+  }
+
+  return response;
 }

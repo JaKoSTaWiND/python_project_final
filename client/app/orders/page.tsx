@@ -43,7 +43,6 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Состояния для полей формы доставки
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [city, setCity] = useState("");
@@ -57,7 +56,7 @@ export default function CheckoutPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.items.length === 0) {
-            toast.error("Ваша корзина пуста");
+            toast.error("Your cart is empty");
             router.push("/");
             return;
           }
@@ -77,31 +76,30 @@ export default function CheckoutPage() {
     e.preventDefault();
 
     if (!firstName || !lastName || !city || !address || !postalCode) {
-      toast.error("Пожалуйста, заполните все обязательные поля");
+      toast.error("Please fill in all required fields");
       return;
     }
 
     setIsSubmitting(true);
 
-  try {
-        const res = await apiFetch("/client/orders/create/", {
-          method: "POST",
-          body: JSON.stringify({
-            first_name: firstName,
-            last_name: lastName,
-            city: city,
-            address: address,
-            postal_code: postalCode,
-          }),
-        });
+    try {
+      const res = await apiFetch("/client/orders/create/", {
+        method: "POST",
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          city: city,
+          address: address,
+          postal_code: postalCode,
+        }),
+      });
 
-        const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({}));
 
-        if (res.ok && data.checkout_url) {
-        toast.success("Перенаправление на страницу оплаты...");
+      if (res.ok && data.checkout_url) {
+        toast.success("Redirecting to payment page...");
         window.location.href = data.checkout_url;
       } else {
-        // Железобетонный разбор ошибок с бэкенда
         if (data.detail) {
           toast.error(data.detail);
         } else if (typeof data === "object") {
@@ -109,15 +107,15 @@ export default function CheckoutPage() {
           const errorMsg = Array.isArray(data[firstKey]) ? data[firstKey][0] : data[firstKey];
           toast.error(`${firstKey.toUpperCase()}: ${errorMsg}`);
         } else {
-          toast.error("Не удалось создать заказ. Попробуйте позже.");
+          toast.error("Failed to create order. Please try again later.");
         }
       }
-      } catch (err) {
-        console.error("Checkout submission error:", err);
-        toast.error("Сетевая ошибка при оформлении заказа");
-      } finally {
-        setIsSubmitting(false);
-      }
+    } catch (err) {
+      console.error("Checkout submission error:", err);
+      toast.error("Network error while processing your order");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -139,10 +137,9 @@ export default function CheckoutPage() {
 
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Кнопка Назад */}
         <button 
           onClick={() => router.back()}
-          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight mb-8"
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight mb-8 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" /> BACK TO CART
         </button>
@@ -151,10 +148,8 @@ export default function CheckoutPage() {
           Checkout
         </h1>
 
-        {/* Форма обернута вокруг сетки */}
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* ЛЕВАЯ КОЛОНКА: ФОРМА ВВОДА ДАННЫХ ДОСТАВКИ */}
           <div className="lg:col-span-8 border border-input bg-background p-6 rounded-none space-y-6">
             <h2 className="text-xl font-extrabold uppercase tracking-tight border-b pb-3">
               Shipping Address
@@ -169,7 +164,7 @@ export default function CheckoutPage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className="w-full h-12 px-4 text-sm bg-background border border-input rounded-none focus:outline-none focus:border-foreground transition-colors uppercase font-medium"
-                  placeholder="Иван"
+                  placeholder="John"
                 />
               </div>
 
@@ -181,7 +176,7 @@ export default function CheckoutPage() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="w-full h-12 px-4 text-sm bg-background border border-input rounded-none focus:outline-none focus:border-foreground transition-colors uppercase font-medium"
-                  placeholder="Иванов"
+                  placeholder="Doe"
                 />
               </div>
             </div>
@@ -195,7 +190,7 @@ export default function CheckoutPage() {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full h-12 px-4 text-sm bg-background border border-input rounded-none focus:outline-none focus:border-foreground transition-colors uppercase font-medium"
-                  placeholder="Алматы"
+                  placeholder="ASTANA"
                 />
               </div>
 
@@ -207,7 +202,7 @@ export default function CheckoutPage() {
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
                   className="w-full h-12 px-4 text-sm bg-background border border-input rounded-none focus:outline-none focus:border-foreground transition-colors font-mono"
-                  placeholder="050000"
+                  placeholder="123456"
                 />
               </div>
             </div>
@@ -220,32 +215,28 @@ export default function CheckoutPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full p-4 text-sm bg-background border border-input rounded-none focus:outline-none focus:border-foreground transition-colors uppercase font-medium resize-none"
-                placeholder="Улица, дом, квартира"
+                placeholder="Street, Building, Apartment"
               />
             </div>
           </div>
 
-          {/* ПРАВАЯ КОЛОНКА: СВОДКА ЗАКАЗА */}
           <div className="lg:col-span-4 border border-input bg-background p-6 rounded-none space-y-6">
             <h2 className="text-xl font-extrabold uppercase tracking-tight border-b pb-3">
               Order Summary
             </h2>
 
             <div className="text-sm space-y-4">
-              {/* Только общее количество предметов и их суммарная стоимость */}
               <div className="flex justify-between text-muted-foreground uppercase font-medium">
                 <span>Items ({cart.total_items_count})</span>
-                <span className="text-foreground font-bold">{cart.total_cart_price.toLocaleString()} KZT</span>
+                <span className="text-foreground font-bold">{cart.total_cart_price.toLocaleString("en-US")} KZT</span>
               </div>
               
-              {/* Чистый Total */}
               <div className="border-t pt-4 flex justify-between text-base font-black text-foreground uppercase">
                 <span>Total</span>
-                <span className="text-xl tracking-tight">{cart.total_cart_price.toLocaleString()} KZT</span>
+                <span className="text-xl tracking-tight">{cart.total_cart_price.toLocaleString("en-US")} KZT</span>
               </div>
             </div>
 
-            {/* Кнопка отправки формы доставки */}
             <button
               type="submit"
               disabled={isSubmitting}

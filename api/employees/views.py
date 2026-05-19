@@ -24,19 +24,19 @@ class EmployeeLoginView(APIView):
                 employee = Employee.objects.get(email=email)
             except Employee.DoesNotExist:
                 return Response(
-                    {"detail": "Invalid email or password."}, 
+                    {"detail": "INVALID EMAIL OR PASSWORD"}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
             if not employee.verify_password(password):
                 return Response(
-                    {"detail": "Invalid email or password."}, 
+                    {"detail": "INVALID EMAIL OR PASSWORD"}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
             if not employee.is_active:
                 return Response(
-                    {"detail": "Your account has been deactivated."}, 
+                    {"detail": "YOUR ACCOUNT HAS BEEN DEACTIVATED"}, 
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
@@ -121,7 +121,7 @@ class EmployeeTokenRefreshView(APIView):
         
         if not refresh_token_string:
             return Response(
-                {"detail": "Refresh токен не передан."}, 
+                {"detail": "REFRESH TOKEN IS REQUIRED"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
             
@@ -134,9 +134,9 @@ class EmployeeTokenRefreshView(APIView):
             }
             return Response(data, status=status.HTTP_200_OK)
             
-        except TokenError as e:
+        except TokenError:
             return Response(
-                {"detail": "invalid refresh token."}, 
+                {"detail": "INVALID REFRESH TOKEN"}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
@@ -149,7 +149,7 @@ class AdminDismissEmployeeView(APIView):
         
         if request.user.id == employee.id:
             return Response(
-                {"detail": "You cannot dismiss your own account."},
+                {"detail": "YOU CANNOT DISMISS YOUR OWN ACCOUNT"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -158,7 +158,7 @@ class AdminDismissEmployeeView(APIView):
 
         return Response(
             {
-                "message": f"Employee {employee.email} has been dismissed.",
+                "message": f"EMPLOYEE {employee.email.upper()} HAS BEEN DISMISSED",
                 "id": str(employee.id)
             },
             status=status.HTTP_200_OK

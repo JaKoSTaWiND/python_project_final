@@ -34,8 +34,8 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Товар"
-        verbose_name_plural = "Товары"
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
         ordering = ['-created_at']
 
     def __str__(self):

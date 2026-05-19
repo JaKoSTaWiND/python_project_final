@@ -25,7 +25,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Шаг 1: Проверка Email
   const handleEmailCheck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -39,13 +38,12 @@ export default function AuthPage() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Ошибка проверки почты");
+      if (!res.ok) throw new Error(data.error || "Email verification error");
 
-      // Точная подгонка под твой бэкенд: "exists" или "new"
       if (data.account_status === "exists") {
         setStep("LOGIN_PASSWORD");
       } else if (data.account_status === "new") {
-        toast.info("Код подтверждения сгенерирован");
+        toast.info("Confirmation code generated");
         setStep("OTP");
       }
     } catch (err: any) {
@@ -55,22 +53,19 @@ export default function AuthPage() {
     }
   };
 
-  // Шаг 2: Проверка OTP
   const handleOtpVerify = async (code: string) => {
     setIsLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/v1/client/auth/verify-otp/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Твой сериализатор VerifyOPTSerializer ждет ключ 'otp_code'
         body: JSON.stringify({ email, otp_code: code }),
       });
       const data = await res.json();
 
-      // Твой бэкенд возвращает 'opt_status' при ошибке (заметь опечатку "opt_status" в твоей вьюхе)
-      if (!res.ok) throw new Error(data.opt_status || data.error || "Неверный код");
+      if (!res.ok) throw new Error(data.opt_status || data.error || "Invalid code");
 
-      toast.success("Почта подтверждена");
+      toast.success("Email accepted");
       setStep("REGISTER_PASSWORD");
     } catch (err: any) {
       toast.error(err.message);
@@ -80,11 +75,10 @@ export default function AuthPage() {
     }
   };
 
-// Шаг 3: Регистрация (Создание пароля)
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Пароли не совпадают");
+      toast.error("Passwords are not equal");
       return;
     }
     setIsLoading(true);
@@ -93,7 +87,6 @@ export default function AuthPage() {
       const res = await fetch(`${BACKEND_URL}/api/v1/client/auth/registrtation/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ТЕПЕРЬ ОТПРАВЛЯЕМ ОБА ПОЛЯ ПАРОЛЯ:
         body: JSON.stringify({ 
           email, 
           password, 
@@ -103,18 +96,17 @@ export default function AuthPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Парсим ошибку, если она пришла массивом полей от Django (как на скриншоте)
-        const errorMsg = data.password_confirm?.[0] || data.error || "Ошибка регистрации";
+        const errorMsg = data.password_confirm?.[0] || data.error || "Error";
         throw new Error(errorMsg);
       }
 
       if (data.tokens?.access) {
-        localStorage.setItem("access_token", data.tokens.access);  // Изменено на snake_case
-        localStorage.setItem("refresh_token", data.tokens.refresh); // Изменено на snake_case
+        localStorage.setItem("access_token", data.tokens.access);
+        localStorage.setItem("refresh_token", data.tokens.refresh);
       }
 
-      toast.success("Регистрация успешна!");
-      router.push("/"); // Редирект на главную
+      toast.success("Success registration");
+      router.push("/");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -122,7 +114,6 @@ export default function AuthPage() {
     }
   };
 
-  // Шаг 4: Логин
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -135,14 +126,13 @@ export default function AuthPage() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Неверный пароль");
+      if (!res.ok) throw new Error(data.error || "Invalid password");
 
       if (data.tokens?.access) {
         localStorage.setItem("accessToken", data.tokens.access);
         localStorage.setItem("refreshToken", data.tokens.refresh);
       }
 
-      toast.success("С возвращением!");
       router.push("/");
     } catch (err: any) {
       toast.error(err.message);
@@ -157,16 +147,16 @@ export default function AuthPage() {
         
         <div className="text-center">
           <h2 className="text-2xl font-bold tracking-tight">
-            {step === "EMAIL" && "Войти в OMS"}
-            {step === "OTP" && "Подтверждение почты"}
-            {step === "REGISTER_PASSWORD" && "Придумайте пароль"}
-            {step === "LOGIN_PASSWORD" && "Введите пароль"}
+            {step === "EMAIL" && "Enter OMS"}
+            {step === "OTP" && "Email confirmation"}
+            {step === "REGISTER_PASSWORD" && "Create a password"}
+            {step === "LOGIN_PASSWORD" && "Enter your password"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {step === "EMAIL" && "Введите email для входа или регистрации"}
-            {step === "OTP" && `Код сгенерирован для ${email}`}
-            {step === "REGISTER_PASSWORD" && "Установите надежный пароль"}
-            {step === "LOGIN_PASSWORD" && "Введите пароль от вашего аккаунта"}
+            {step === "EMAIL" && "Enter your email to log in or register"}
+            {step === "OTP" && `Code generated for ${email}`}
+            {step === "REGISTER_PASSWORD" && "Set a strong password"}
+            {step === "LOGIN_PASSWORD" && "Enter your account password"}
           </p>
         </div>
 
@@ -189,7 +179,7 @@ export default function AuthPage() {
               disabled={isLoading}
               className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Продолжить"}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue"}
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
@@ -219,7 +209,7 @@ export default function AuthPage() {
             {isLoading && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Проверка...
+                Check...
               </div>
             )}
 
@@ -227,7 +217,7 @@ export default function AuthPage() {
               onClick={() => setStep("EMAIL")}
               className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
             >
-              Изменить почту
+              Change email
             </button>
           </div>
         )}
@@ -242,7 +232,7 @@ export default function AuthPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Новый пароль"
+                placeholder="New password"
                 className="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={isLoading}
               />
@@ -255,7 +245,7 @@ export default function AuthPage() {
                 minLength={8}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Повторите пароль"
+                placeholder="Repeat password"
                 className="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={isLoading}
               />
@@ -265,7 +255,7 @@ export default function AuthPage() {
               disabled={isLoading}
               className="w-full rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {isLoading ? "Регистрация..." : "Завершить регистрацию"}
+              {isLoading ? "Registration..." : "Sign Up"}
             </button>
           </form>
         )}
@@ -279,7 +269,7 @@ export default function AuthPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Ваш пароль"
+                placeholder="Password"
                 className="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={isLoading}
               />
@@ -289,7 +279,7 @@ export default function AuthPage() {
               disabled={isLoading}
               className="w-full rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {isLoading ? "Вход..." : "Войти"}
+              {isLoading ? "Entering..." : "Enter"}
             </button>
             <div className="text-center">
               <button
@@ -297,7 +287,7 @@ export default function AuthPage() {
                 onClick={() => setStep("EMAIL")}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
               >
-                Назад к вводу почты
+                Back to entering email
               </button>
             </div>
           </form>

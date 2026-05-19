@@ -116,12 +116,12 @@ export default function CartPage() {
       <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">
         <Navbar />
         <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h1 className="font-mono text-2xl font-bold tracking-tight mb-6 uppercase">Ваша корзина пуста</h1>
+          <h1 className="font-mono text-2xl font-bold tracking-tight mb-6 uppercase">Your cart is empty</h1>
           <button
             onClick={() => router.push("/")}
-            className="inline-flex items-center gap-2 font-mono text-sm border border-foreground bg-foreground text-background px-6 py-3 hover:bg-background text-foreground transition-colors rounded-none uppercase font-bold"
+            className="inline-flex items-center gap-2 font-mono text-sm border border-foreground bg-foreground text-background px-6 py-3 hover:bg-background hover:text-foreground transition-colors rounded-none uppercase font-bold cursor-pointer"
           >
-            <ChevronLeft className="h-4 w-4" /> На главную
+            <ChevronLeft className="h-4 w-4" /> Go to Homepage
           </button>
         </main>
       </div>
@@ -134,7 +134,6 @@ export default function CartPage() {
 
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Кнопка Назад */}
         <button 
           onClick={() => router.back()}
           className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight mb-8"
@@ -146,13 +145,10 @@ export default function CartPage() {
           Shopping Cart
         </h1>
 
-        {/* Сетка: 8 колонок под товары, 4 колонки под сводку заказа */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* СПИСОК ТОВАРОВ */}
           <div className="lg:col-span-8 space-y-4">
             {cart.items.map((item) => {
-              // Корректный разбор URL медиа-файла
               const imageUrl = item.product.photo
                 ? (item.product.photo.startsWith("http") ? item.product.photo : `${BACKEND_URL}${item.product.photo}`)
                 : "/placeholder.png";
@@ -162,7 +158,6 @@ export default function CartPage() {
                   key={item.id}
                   className="flex gap-4 border border-input bg-background p-4 relative rounded-none transition-colors"
                 >
-                  {/* Квадратное превью товара */}
                   <div className="relative h-24 w-24 flex-shrink-0 border border-border bg-muted overflow-hidden rounded-none aspect-square">
                     <Image
                       src={imageUrl}
@@ -173,7 +168,6 @@ export default function CartPage() {
                     />
                   </div>
 
-                  {/* Описание и контроллеры */}
                   <div className="flex flex-1 flex-col justify-between">
                     <div className="space-y-1">
                       <div className="flex justify-between items-start gap-4">
@@ -181,7 +175,7 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <p className="font-bold text-base whitespace-nowrap">
-                          {parseFloat(item.product.price).toLocaleString()} KZT
+                          {parseFloat(item.product.price).toLocaleString("en-US")} KZT
                         </p>
                       </div>
                       
@@ -192,13 +186,12 @@ export default function CartPage() {
                     </div>
 
                     <div className="flex items-center justify-between mt-4">
-                      {/* Степпер количества */}
                       <div className="inline-flex items-center border border-input h-8 bg-background">
                         <button
                           type="button"
                           disabled={isUpdating === item.id || item.quantity <= 1}
                           onClick={() => handleQuantityChange(item, item.quantity - 1)}
-                          className="w-8 h-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors border-r border-input"
+                          className="w-8 h-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors border-r border-input cursor-pointer"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -211,17 +204,16 @@ export default function CartPage() {
                           type="button"
                           disabled={isUpdating === item.id}
                           onClick={() => handleQuantityChange(item, item.quantity + 1)}
-                          className="w-8 h-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors border-l border-input"
+                          className="w-8 h-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors border-l border-input cursor-pointer"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
 
-                      {/* Кнопка Remove */}
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(item.id)}
-                        className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors uppercase px-2 py-1"
+                        className="flex items-center gap-1 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors uppercase px-2 py-1 cursor-pointer"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         <span>Remove</span>
@@ -237,7 +229,6 @@ export default function CartPage() {
             })}
           </div>
 
-          {/* ИТОГОВАЯ ФОРМА ЗАКАЗА */}
           <div className="lg:col-span-4 border border-input bg-background p-6 rounded-none space-y-6">
             <h2 className="text-xl font-extrabold uppercase tracking-tight border-b pb-3">
               Order Summary
@@ -246,20 +237,19 @@ export default function CartPage() {
             <div className="text-sm space-y-4">
               <div className="flex justify-between text-muted-foreground uppercase font-medium">
                 <span>Items ({cart.total_items_count})</span>
-                <span className="text-foreground font-bold">{cart.total_cart_price.toLocaleString()} KZT</span>
+                <span className="text-foreground font-bold">{cart.total_cart_price.toLocaleString("en-US")} KZT</span>
               </div>
               
-              {/* Shipping удален, оставлен только чистый Total */}
               <div className="border-t pt-4 flex justify-between text-base font-black text-foreground uppercase">
                 <span>Total</span>
-                <span className="text-xl tracking-tight">{cart.total_cart_price.toLocaleString()} KZT</span>
+                <span className="text-xl tracking-tight">{cart.total_cart_price.toLocaleString("en-US")} KZT</span>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => router.push("/orders")}
-              className="w-full h-14 flex items-center justify-center rounded-none bg-foreground text-background font-bold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 shadow-sm"
+              className="w-full h-14 flex items-center justify-center rounded-none bg-foreground text-background font-bold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 shadow-sm cursor-pointer"
             >
               Proceed to Checkout
             </button>

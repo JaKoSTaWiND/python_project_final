@@ -39,34 +39,30 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Стейты для модального окна добавления товара
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   
-  // Данные формы
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  // Стейты для изменения статуса активности (архивации товара)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [productToToggle, setProductToToggle] = useState<Product | null>(null);
 
   const fetchData = async () => {
     try {
-      // Параллельно запрашиваем список товаров и справочник размеров
       const [productsRes, sizesRes] = await Promise.all([
         apiFetch("/admin/products/list/"),
-        apiFetch("/admin/products/sizes/list/").catch(() => null), // Не падать, если справочник пуст
+        apiFetch("/admin/products/sizes/list/").catch(() => null),
       ]);
 
       if (!productsRes.ok) {
         if (productsRes.status === 401 || productsRes.status === 403) {
-          throw new Error("Недостаточно прав для просмотра этой страницы");
+          throw new Error("Insufficient permissions to view this page");
         }
-        throw new Error("Не удалось загрузить данные товаров");
+        throw new Error("Failed to load product data");
       }
 
       const productsData = await productsRes.json();
@@ -99,12 +95,10 @@ export default function ProductsPage() {
     setFormError("");
 
     try {
-      // Исполняем отправку через FormData, так как передаем бинарный файл (photo)
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
       
-      // Передаем массив ID размеров
       selectedSizes.forEach((id) => {
         formData.append("sizes", id.toString());
       });
@@ -113,10 +107,8 @@ export default function ProductsPage() {
         formData.append("photo", photoFile);
       }
 
-      // Отправляем на бэкенд. Внутри apiFetch у тебя должна быть обработка multipart данных
       const response = await apiFetch("/admin/products/create/", {
         method: "POST",
-        // ВАЖНО: При передачи FormData заголовок Content-Type браузер должен выставить сам вместе с boundary
         body: formData, 
       });
 
@@ -128,19 +120,18 @@ export default function ProductsPage() {
           const errorMsg = Array.isArray(result[firstKey]) ? result[firstKey][0] : JSON.stringify(result[firstKey]);
           throw new Error(`${firstKey}: ${errorMsg}`);
         }
-        throw new Error("Не удалось создать товар");
+        throw new Error("Failed to create product");
       }
 
       await fetchData();
       setIsDialogOpen(false);
       
-      // Сброс полей
       setName("");
       setPrice("");
       setSelectedSizes([]);
       setPhotoFile(null);
 
-      toast.success("Товар успешно добавлен в каталог");
+      toast.success("Product successfully added to catalog");
     } catch (err: any) {
       setFormError(err.message);
     } finally {
@@ -165,18 +156,17 @@ export default function ProductsPage() {
 
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
-        throw new Error(result.detail || "Не удалось изменить статус товара");
+        throw new Error(result.detail || "Failed to change product status");
       }
 
-      // Оптимистично меняем статус в стейте таблицы
       setProducts((prev) =>
         prev.map((p) => (p.id === targetId ? { ...p, is_active: nextStatus } : p))
       );
       
-      toast.success(nextStatus ? "Товар активирован" : "Товар переведен в архив");
+      toast.success(nextStatus ? "Product activated" : "Product moved to archive");
     } catch (err: any) {
       console.error(err);
-      toast.error(`Ошибка: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
     } finally {
       setIsConfirmOpen(false);
       setProductToToggle(null);
@@ -184,13 +174,13 @@ export default function ProductsPage() {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground animate-pulse">Загрузка каталога товаров...</div>;
+    return <div className="text-sm text-muted-foreground animate-pulse">Loading product catalog...</div>;
   }
 
   if (error) {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md font-medium">
-        Ошибка: {error}
+        Error: {error}
       </div>
     );
   }
@@ -199,14 +189,12 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <Toaster richColors position="top-center" />
 
-      {/* Хедер каталога */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Products</h1>
           <p className="text-sm text-muted-foreground mt-1">Catalog management, inventory sizes, and pricing</p>
         </div>
 
-        {/* Модальное окно добавления товара */}
         <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <Dialog.Trigger asChild>
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity cursor-pointer shadow-sm">
@@ -263,11 +251,10 @@ export default function ProductsPage() {
                   />
                 </div>
 
-                {/* Выбор массива размеров */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Available Sizes</label>
                   {availableSizes.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">Справочник размеров пуст. Добавьте размеры через Django Admin.</p>
+                    <p className="text-xs text-muted-foreground italic">Size directory is empty. Add sizes via Django Admin.</p>
                   ) : (
                     <div className="grid grid-cols-4 gap-2 pt-1">
                       {availableSizes.map((size) => {
@@ -285,7 +272,7 @@ export default function ProductsPage() {
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => handleSizeCheckboxChange(size.id)}
-                              className="sr-only" // Скрываем дефолтный чекбокс, стилизуем саму плашку
+                              className="sr-only"
                             />
                             {size.name}
                           </label>
@@ -295,7 +282,6 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                {/* Кастомное поле выбора изображения */}
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">Product Image</label>
                   <div className="flex items-center gap-3">
@@ -338,7 +324,6 @@ export default function ProductsPage() {
         </Dialog.Root>
       </div>
 
-      {/* Таблица товаров */}
       <div className="rounded-md border border-border bg-card text-card-foreground overflow-hidden">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
@@ -356,7 +341,7 @@ export default function ProductsPage() {
             {products.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                  В каталоге товаров пока нет записей.
+                  No records found in the product catalog.
                 </td>
               </tr>
             ) : (
@@ -420,24 +405,23 @@ export default function ProductsPage() {
         </table>
       </div>
 
-      {/* === SHADCN ALERT DIALOG COMPONENT ДЛЯ АРХИВАЦИИ === */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Изменение статуса товара</AlertDialogTitle>
+            <AlertDialogTitle>Change Product Status</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы уверены, что хотите {productToToggle?.is_active ? "перевести в архив" : "активировать"} товар{" "}
+              Are you sure you want to {productToToggle?.is_active ? "archive" : "activate"} the product{" "}
               <strong>{productToToggle?.name}</strong> (SKU: {productToToggle?.sku})? 
-              {productToToggle?.is_active && " Скрытые товары перестанут отображаться на витрине для покупателей."}
+              {productToToggle?.is_active && " Hidden products will no longer be visible to customers in the catalog storefront."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleExecuteToggleActive}
               className={productToToggle?.is_active ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary text-primary-foreground hover:opacity-90"}
             >
-              {productToToggle?.is_active ? "Архивировать" : "Активировать"}
+              {productToToggle?.is_active ? "Archive" : "Activate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

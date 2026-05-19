@@ -22,7 +22,7 @@ export default function PaymentSuccessPage() {
             Payment Successful!
           </h1>
           <p className="text-sm text-muted-foreground uppercase font-mono">
-            Заказ #{orderId || "N/A"} успешно оформлен и передан в обработку.
+            Order #{orderId || "N/A"} successfully completed and submitted for processing.
           </p>
         </div>
 

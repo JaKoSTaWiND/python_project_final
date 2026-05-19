@@ -29,8 +29,8 @@ export default function ProductDetailPage() {
       try {
         const res = await fetch(`${API_URL}/client/products/${id}/`);
         if (!res.ok) {
-          if (res.status === 404) throw new Error("Товар не найден");
-          throw new Error("Ошибка при загрузке товара");
+          if (res.status === 404) throw new Error("PRODUCT NOT FOUND");
+          throw new Error("ERROR LOADING PRODUCT DATA");
         }
         const data = await res.json();
         setProduct(data);
@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
         }
       }
     } catch (err) {
-      console.error("Ошибка при добавлении в корзину:", err);
+      console.error(err);
       toast.error("Network error occurred");
     } finally {
       setIsAdding(false);
@@ -110,7 +110,7 @@ export default function ProductDetailPage() {
         
         <button 
           onClick={() => router.back()}
-          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight mb-8"
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight mb-8 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" /> BACK
         </button>
@@ -134,8 +134,8 @@ export default function ProductDetailPage() {
               <h1 className="text-3xl font-extrabold tracking-tight uppercase border-b pb-4">
                 {product.name}
               </h1>
-              <p className="text-2xl font-bold tracking-tight pt-2">
-                {Number(product.price).toLocaleString()} KZT
+              <p className="text-2xl font-bold tracking-tight pt-2 font-mono">
+                {Number(product.price).toLocaleString("en-US")} KZT
               </p>
             </div>
 
@@ -145,7 +145,7 @@ export default function ProductDetailPage() {
               </div>
               
               {product.sizes.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Нет доступных размеров для этого товара.</p>
+                <p className="text-sm text-muted-foreground italic uppercase tracking-tight">No sizes available for this product.</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {product.sizes.map((size) => {
@@ -155,7 +155,7 @@ export default function ProductDetailPage() {
                         key={size.id}
                         type="button"
                         onClick={() => setSelectedSize(size.id)}
-                        className={`h-12 text-sm font-medium transition-all uppercase border rounded-none ${
+                        className={`h-12 text-sm font-medium transition-all uppercase border rounded-none cursor-pointer ${
                           isSelected
                             ? "bg-foreground text-background border-foreground"
                             : "bg-background border-input text-foreground hover:border-foreground"
@@ -175,7 +175,7 @@ export default function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => handleQuantityChange("decrement")}
-                  className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors border-r border-input"
+                  className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors border-r border-input cursor-pointer"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="w-4 h-4" />
@@ -186,7 +186,7 @@ export default function ProductDetailPage() {
                 <button
                   type="button"
                   onClick={() => handleQuantityChange("increment")}
-                  className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors border-l border-input"
+                  className="w-12 h-full flex items-center justify-center hover:bg-muted transition-colors border-l border-input cursor-pointer"
                   aria-label="Increase quantity"
                 >
                   <Plus className="w-4 h-4" />
@@ -199,10 +199,9 @@ export default function ProductDetailPage() {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isAdding || product.sizes.length === 0}
-                className="w-full h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none rounded-none"
+                className="w-full h-14 bg-foreground text-background font-bold uppercase tracking-widest text-sm transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none rounded-none cursor-pointer"
               >
-                {/* {isAdding ? "Adding..." : "Add to cart"} */}
-                ADD TO CART
+                {isAdding ? "ADDING..." : "ADD TO CART"}
               </button>
             </div>
 

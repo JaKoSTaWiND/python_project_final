@@ -11,11 +11,11 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Корзина"
-        verbose_name_plural = "Корзины"
+        verbose_name = "Cart"
+        verbose_name_plural = "Carts"
 
     def __str__(self):
-        return f"Корзина пользователя {self.user.email}"
+        return f"Cart of {self.user.email}"
 
 
 class CartItem(models.Model):
@@ -25,8 +25,8 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     class Meta:
-        verbose_name = "Элемент корзины"
-        verbose_name_plural = "Элементы корзины"
+        verbose_name = "Cart Item"
+        verbose_name_plural = "Cart Items"
         unique_together = ('cart', 'product', 'size')
 
     def __str__(self):

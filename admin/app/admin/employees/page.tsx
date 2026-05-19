@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+
 interface Employee {
   id: string;
   email: string;
@@ -51,9 +52,9 @@ export default function EmployeesPage() {
       const response = await apiFetch("/admin/employees/list");
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          throw new Error("Недостаточно прав для просмотра этой страницы");
+          throw new Error("Insufficient permissions to view this page");
         }
-        throw new Error("Не удалось загрузить данные сотрудников");
+        throw new Error("Failed to load employee data");
       }
       const data = await response.json();
       setEmployees(data);
@@ -79,7 +80,7 @@ export default function EmployeesPage() {
     setFormError("");
 
     if (formData.password !== formData.password_confirm) {
-      setFormError("Пароли не совпадают");
+      setFormError("The passwords don't match");
       setIsSubmitting(false);
       return;
     }
@@ -97,22 +98,29 @@ export default function EmployeesPage() {
         }),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result;
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(`Server returned status ${response.status}`);
+      }
 
       if (!response.ok) {
-        if (typeof result === "object") {
+        if (result && typeof result === "object") {
           const firstKey = Object.keys(result)[0];
-          const errorMsg = Array.isArray(result[firstKey]) ? result[firstKey][0] : JSON.stringify(result[firstKey]);
-          throw new Error(`${firstKey}: ${errorMsg}`);
+          if (firstKey) {
+            const errorMsg = Array.isArray(result[firstKey]) ? result[firstKey][0] : JSON.stringify(result[firstKey]);
+            throw new Error(`${firstKey}: ${errorMsg}`);
+          }
         }
-        throw new Error("Не удалось создать сотрудника");
+        throw new Error(result.detail || "Failed to create employee");
       }
 
       await fetchEmployees();
       setIsDialogOpen(false);
       setFormData({ email: "", password: "", password_confirm: "", first_name: "", last_name: "", phone: "" });
-      
-      toast.success("Сотрудник успешно добавлен в штат");
+      toast.success("The employee has been successfully added");
     } catch (err: any) {
       setFormError(err.message);
     } finally {
@@ -137,14 +145,14 @@ export default function EmployeesPage() {
 
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
-        throw new Error(result.detail || "Не удалось уволить сотрудника");
+        throw new Error(result.detail || "Failed to dismiss employee");
       }
 
       setEmployees((prevEmployees) => prevEmployees.filter((emp) => emp.id !== targetId));
-      toast.success(`Сотрудник ${targetEmail} успешно уволен`);
+      toast.success(`Employee ${targetEmail} has been successfully dismissed`);
     } catch (err: any) {
       console.error(err);
-      toast.error(`Ошибка: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
     } finally {
       setIsConfirmOpen(false);
       setEmployeeToDismiss(null);
@@ -152,13 +160,13 @@ export default function EmployeesPage() {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground animate-pulse">Загрузка штата сотрудников...</div>;
+    return <div className="text-sm text-muted-foreground animate-pulse">Loading staff records...</div>;
   }
 
   if (error) {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-md font-medium">
-        Ошибка: {error}
+        Error: {error}
       </div>
     );
   }
@@ -320,7 +328,7 @@ export default function EmployeesPage() {
             {employees.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  В таблице employees пока нет записей.
+                  No records found in the employees table.
                 </td>
               </tr>
             ) : (
@@ -353,19 +361,19 @@ export default function EmployeesPage() {
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Увольнение сотрудника</AlertDialogTitle>
+            <AlertDialogTitle>Dismiss Employee</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы уверены, что хотите уволить сотрудника <strong>{employeeToDismiss?.email}</strong>? 
-              Доступ к корпоративным сервисам и сессии будут аннулированы немедленно. Это действие необратимо.
+              Are you sure you want to dismiss employee <strong>{employeeToDismiss?.email}</strong>? 
+              Corporate service access and active sessions will be revoked immediately. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleExecuteDismiss}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Уволить сотрудника
+              Dismiss Employee
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

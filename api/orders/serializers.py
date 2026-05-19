@@ -34,5 +34,31 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     def validate_postal_code(self, value):
         clean_value = value.strip()
         if len(clean_value) < 4:
-            raise serializers.ValidationError("Укажите корректный почтовый индекс.")
+            raise serializers.ValidationError("Please enter a valid postal code.")
         return clean_value
+    
+class AdminOrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product_name', 'size_name', 'price', 'quantity']
+
+
+class AdminOrderListSerializer(serializers.ModelSerializer):
+    items = AdminOrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'city',
+            'address',
+            'postal_code',
+            'status',
+            'total_price',
+            'created_at',
+            'items'
+        ]

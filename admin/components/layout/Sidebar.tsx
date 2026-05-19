@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldAlert, Package } from "lucide-react";
+import { ShieldAlert, Package, ListOrdered } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   const menuItems = [
     { name: "Employees", href: "/admin/employees", icon: ShieldAlert },
-    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Orders", href: "/admin/orders", icon: ListOrdered },
     { name: "Products", href: "/admin/products", icon: Package },
   ];
 

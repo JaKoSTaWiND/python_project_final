@@ -28,7 +28,7 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Неверный email или пароль");
+        throw new Error(data.detail || "Invalid email or password");
       }
 
       localStorage.setItem("access_token", data.access);
@@ -36,7 +36,7 @@ export default function Home() {
 
       router.push("/admin");
     } catch (err: any) {
-      setError(err.message || "Ошибка соединения с сервером");
+      setError(err.message || "Failed to connect to the server");
     } finally {
       setIsLoading(false);
     }
@@ -46,13 +46,11 @@ export default function Home() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-foreground">
       <div className="w-full max-w-md bg-card border border-border rounded-xl p-8 shadow-sm text-card-foreground">
         
-        {/* Заголовок */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-black tracking-wider text-primary">OMS</h1>
-          <p className="text-muted-foreground text-sm mt-2">Панель управления персоналом</p>
+          <p className="text-muted-foreground text-sm mt-2">Personnel Management Control Panel</p>
         </div>
 
-        {/* Ошибки */}
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg text-center font-medium">
             {error}
@@ -60,7 +58,6 @@ export default function Home() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Поле Email */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Email Address
@@ -75,7 +72,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Поле Пароль */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Password
@@ -90,13 +86,12 @@ export default function Home() {
             />
           </div>
 
-          {/* Кнопка */}
           <button
             type="submit"
             disabled={isLoading}
             className="w-full py-3 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground font-medium rounded-md text-sm transition-opacity cursor-pointer disabled:cursor-not-allowed shadow-sm"
           >
-            {isLoading ? "Авторизация..." : "Войти в систему"}
+            {isLoading ? "Authenticating..." : "Sign In"}
           </button>
         </form>
 

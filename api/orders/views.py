@@ -1,15 +1,16 @@
+import os
 import stripe
 from django.db import transaction
 from django.conf import settings
 from rest_framework import status
-from rest_framework.generics import ListAPIView, CreateAPIView
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
-from .models import Order, OrderItem
-from .serializers import OrderCreateSerializer
-import os
 
+from employees.authentication import EmployeeJWTAuthentication
+from .models import Order, OrderItem
+from .serializers import OrderCreateSerializer, AdminOrderListSerializer
 from cart.models import Cart 
 
 stripe.api_key = os.getenv(
@@ -29,18 +30,17 @@ class OrderCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        # Передаем контекст запроса, чтобы сериализатор имел доступ к request
         serializer = OrderCreateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
         try:
             cart = Cart.objects.get(user=request.user)
         except Cart.DoesNotExist:
-            return Response({"detail": "Корзина не найдена."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "CART NOT FOUND"}, status=status.HTTP_400_BAD_REQUEST)
 
         cart_items = cart.items.all()
         if not cart_items.exists():
-            return Response({"detail": "Ваша корзина пуста."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "YOUR CART IS EMPTY"}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             order = serializer.save(user=request.user, total_price=0.00)
@@ -64,11 +64,7 @@ class OrderCreateView(APIView):
             order.total_price = total_cart_price
             order.save()
 
-        # Генерируем сессию Stripe Checkout
         try:
-            # Внимание: если Stripe-аккаунт тестовый, KZT может не поддерживаться.
-            # Для теста используем 'usd'. Если цена в тенге (например 100 000 KZT),
-            # конвертни её или пока оставь для проверки шлюза.
             stripe_amount = int(order.total_price * 100)
 
             checkout_session = stripe.checkout.Session.create(
@@ -77,7 +73,7 @@ class OrderCreateView(APIView):
                     'price_data': {
                         'currency': 'kzt',
                         'product_data': {
-                            'name': f"Заказ #{order.id} - {order.first_name} {order.last_name}",
+                            'name': f"ORDER #{order.id} - {order.first_name.upper()} {order.last_name.upper()}",
                         },
                         'unit_amount': stripe_amount,
                     },
@@ -95,15 +91,14 @@ class OrderCreateView(APIView):
             return Response({"checkout_url": checkout_session.url}, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            # Если Stripe выкинул ошибку, мы возвращаем её описание, 
-            # чтобы фронтенд вывел реальную причину, а не гадал
             return Response(
-                {"detail": f"Stripe Error: {str(e)}"}, 
+                {"detail": f"STRIPE ERROR: {str(e).upper()}"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+
 class StripeWebhookView(APIView):
-    permission_classes = [AllowAny]  # Запросы шлет сам Stripe, тут нет JWT
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         payload = request.body
@@ -117,7 +112,6 @@ class StripeWebhookView(APIView):
         except (ValueError, stripe.error.SignatureVerificationError):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        # Обрабатываем успешный платеж
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
             metadata = session.get('metadata', {})
@@ -126,10 +120,45 @@ class StripeWebhookView(APIView):
 
             if order_id and user_id:
                 with transaction.atomic():
-                    # 1. Меняем статус заказа на 'sent' (или 'paid', если добавишь такой статус)
                     Order.objects.filter(id=order_id).update(status='sent')
-                    
-                    # 2. Только теперь со спокойной душой чистим корзину пользователя
                     Cart.objects.filter(user_id=user_id).delete()
 
         return Response(status=status.HTTP_200_OK)
+    
+
+class AdminOrderListView(APIView):
+    authentication_classes = [EmployeeJWTAuthentication]
+    permission_classes = []
+
+    def get(self, request):
+        orders = Order.objects.all().prefetch_related('items__product').order_by('-created_at')
+        serializer = AdminOrderListSerializer(orders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminOrderUpdateStatusView(APIView):
+    authentication_classes = [EmployeeJWTAuthentication]
+    permission_classes = []
+
+    def patch(self, request, pk, *args, **kwargs):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({"detail": "ORDER NOT FOUND"}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get("status")
+        
+        valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return Response(
+                {"detail": f"INVALID STATUS. ALLOWED VALUES: {valid_statuses}"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order.status = new_status
+        order.save()
+        
+        return Response(
+            {"id": order.id, "status": order.status, "detail": "STATUS UPDATED SUCCESSFULLY"}, 
+            status=status.HTTP_200_OK
+        )

@@ -26,7 +26,7 @@ class CartView(APIView):
 
             if quantity <= 0:
                 CartItem.objects.filter(cart=cart, product_id=product_id, size_id=size_id).delete()
-                return Response({"message": "Товар удален из корзины"}, status=status.HTTP_200_OK)
+                return Response({"message": "PRODUCT REMOVED FROM CART"}, status=status.HTTP_200_OK)
 
             cart_item, created = CartItem.objects.update_or_create(
                 cart=cart,
@@ -35,22 +35,22 @@ class CartView(APIView):
                 defaults={'quantity': quantity}
             )
             
-            return Response({"message": "Корзина успешно обновлена"}, status=status.HTTP_200_OK)
+            return Response({"message": "CART UPDATED SUCCESSFULLY"}, status=status.HTTP_200_OK)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
         cart = getattr(request.user, 'cart', None)
         if not cart:
-            return Response({"error": "Корзина не найдена"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "CART NOT FOUND"}, status=status.HTTP_404_NOT_FOUND)
             
         item_id = request.data.get('cart_item_id')
         if not item_id:
-            return Response({"error": "Не передан cart_item_id"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "REQUIRED FIELD CART_ITEM_ID IS MISSING"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             item = CartItem.objects.get(id=item_id, cart=cart)
             item.delete()
-            return Response({"message": "Позиция удалена из корзины"}, status=status.HTTP_200_OK)
+            return Response({"message": "ITEM REMOVED FROM CART"}, status=status.HTTP_200_OK)
         except CartItem.DoesNotExist:
-            return Response({"error": "Элемент не найден в корзине"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "ITEM NOT FOUND IN CART"}, status=status.HTTP_404_NOT_FOUND)

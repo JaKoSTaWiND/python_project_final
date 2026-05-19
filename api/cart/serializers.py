@@ -31,11 +31,10 @@ class CartItemSerializer(serializers.ModelSerializer):
         try:
             product = Product.objects.get(id=data['product_id'], is_active=True)
         except Product.DoesNotExist:
-            raise serializers.ValidationError({"product_id": "Товар не найден или деактивирован."})
+            raise serializers.ValidationError({"product_id": "PRODUCT NOT FOUND OR INACTIVE"})
 
-        # Проверяем, привязан ли этот размер к данному товару в ManyToMany
         if not product.sizes.filter(id=data['size_id']).exists():
-            raise serializers.ValidationError({"size_id": "Этот размер недоступен для данного товара."})
+            raise serializers.ValidationError({"size_id": "SELECTED SIZE IS UNAVAILABLE FOR THIS PRODUCT"})
 
         return data
 
