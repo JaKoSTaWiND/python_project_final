@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny # ИМПОРТИРУЕМ ПОЛ�
 from django.shortcuts import get_object_or_404
 
 from .models import Product, Size
-from .serializers import ProductAdminListSerializer, SizeSerializer 
+from .serializers import ProductAdminListSerializer, SizeSerializer
 
 
 class ProductAdminAPIView(generics.ListCreateAPIView):
@@ -14,22 +14,38 @@ class ProductAdminAPIView(generics.ListCreateAPIView):
     serializer_class = ProductAdminListSerializer
     parser_classes = [MultiPartParser, FormParser]
     
-    # ВРЕМЕННО: Отключаем проверки. Теперь и GET, и POST доступны кому угодно
     permission_classes = [AllowAny]
-    authentication_classes = [] # Очищаем, чтобы Django не пытался валидировать токены
+    authentication_classes = []
 
 
 class SizeListView(generics.ListAPIView):
     queryset = Size.objects.all().order_by('name')
     serializer_class = SizeSerializer
     
-    # ВРЕМЕННО: Открываем справочник размеров для модалки
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+class ClientProductListView(generics.ListAPIView):
+    queryset = Product.objects.filter(is_active=True).order_by('-id')
+    serializer_class = ProductAdminListSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+class ClientSizeListView(generics.ListAPIView):
+    queryset = Size.objects.all().order_by('name')
+    serializer_class = SizeSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+class ClientProductDetailView(generics.RetrieveAPIView):
+    queryset = Product.objects.filter(is_active=True).prefetch_related('sizes')
+    serializer_class = ProductAdminListSerializer
+    
     permission_classes = [AllowAny]
     authentication_classes = []
 
 
 class ProductToggleActiveView(APIView):
-    # ВРЕМЕННО: Открываем возможность архивации по кнопке
     permission_classes = [AllowAny]
     authentication_classes = []
 

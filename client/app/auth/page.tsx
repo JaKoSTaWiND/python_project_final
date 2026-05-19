@@ -108,10 +108,9 @@ export default function AuthPage() {
         throw new Error(errorMsg);
       }
 
-      // Твой бэкенд отдает токены внутри объекта 'tokens'
       if (data.tokens?.access) {
-        localStorage.setItem("accessToken", data.tokens.access);
-        localStorage.setItem("refreshToken", data.tokens.refresh);
+        localStorage.setItem("access_token", data.tokens.access);  // Изменено на snake_case
+        localStorage.setItem("refresh_token", data.tokens.refresh); // Изменено на snake_case
       }
 
       toast.success("Регистрация успешна!");

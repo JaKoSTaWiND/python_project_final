@@ -8,6 +8,8 @@ from users.serializers import EmailCheckSerializer, VerifyOPTSerializer, Registr
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.services.auth import send_otp_email
 
@@ -124,3 +126,22 @@ class LoginView(APIView):
             return Response({"error": "invalid password"}, status=status.HTTP_401_UNAUTHORIZED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticated]
+    # Явно указываем поддерживаемые типы аутентификации
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        user = request.user
+        
+        # Защитная проверка на случай, если аутентификация дала сбой, но пермишены пропустили (edge case)
+        if user.is_anonymous:
+            return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        return Response({
+            "id": user.id,
+            "email": user.email,
+            # Если username нет в модели, берем часть email до собаки или пустую строку, чтобы фронтенд не упал
+            "username": getattr(user, 'username', user.email.split('@')[0])
+        }, status=status.HTTP_200_OK)

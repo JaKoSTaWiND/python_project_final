@@ -15,7 +15,11 @@ billiard==4.2.4
 celery==5.6.3
     # via -r requirements.in
 certifi==2026.4.22
-    # via sib-api-v3-sdk
+    # via
+    #   requests
+    #   sib-api-v3-sdk
+charset-normalizer==3.4.7
+    # via requests
 click==8.3.3
     # via
     #   celery
@@ -48,6 +52,8 @@ djangorestframework==3.17.1
     #   djangorestframework-simplejwt
 djangorestframework-simplejwt==5.5.1
     # via -r requirements.in
+idna==3.15
+    # via requests
 kombu==5.6.2
     # via celery
 packaging==26.2
@@ -68,6 +74,8 @@ python-dotenv==1.2.2
     # via -r requirements.in
 redis==7.4.0
     # via django-redis
+requests==2.34.2
+    # via stripe
 sib-api-v3-sdk==7.6.0
     # via -r requirements.in
 six==1.17.0
@@ -76,12 +84,18 @@ six==1.17.0
     #   sib-api-v3-sdk
 sqlparse==0.5.5
     # via django
+stripe==15.1.0
+    # via -r requirements.in
+typing-extensions==4.15.0
+    # via stripe
 tzdata==2026.2
     # via kombu
 tzlocal==5.3.1
     # via celery
 urllib3==2.7.0
-    # via sib-api-v3-sdk
+    # via
+    #   requests
+    #   sib-api-v3-sdk
 vine==5.1.0
     # via
     #   amqp
